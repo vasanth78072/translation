@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>English to Tamil Translator</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="header">
+            <h1>English → Tamil</h1>
+            <p>AI Translation Chatbox</p>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+
+                <div class="bubble">
+                    Hello! 👋<br>
+                    Enter an English sentence and I will translate it into Tamil.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="input-area">
+
+            <textarea
+                id="userInput"
+                placeholder="Type your English sentence..."
+                rows="2"></textarea>
+                <button id="plusBtn" type="button" title="Add attachment"
+        onclick="document.getElementById('fileInput').click()">
+        ＋
+    </button>
+    <button id="micBtn" type="button" title="Speak"
+        onclick="startMic()">
+        🎤
+    </button>
+
+            <button id="sendBtn" onclick="translateText()">
+                Send ➤
+            </button>
+
+        </div>
+
+        <div class="status" id="status"></div>
+
+    </div>
+
+
+    <script>
+
+        async function translateText() {
+
+            const input = document.getElementById("userInput");
+            const chatBox = document.getElementById("chatBox");
+            const sendBtn = document.getElementById("sendBtn");
+            const status = document.getElementById("status");
+
+            const text = input.value.trim();
+
+            if (!text) {
+                return;
+            }
+
+            // Show user message
+            const userMessage = document.createElement("div");
+
+            userMessage.className = "message user";
+
+            userMessage.innerHTML = `
+                <div class="bubble">
+                    ${escapeHtml(text)}
+                </div>
+                <div class="avatar">👤</div>
+            `;
+
+            chatBox.appendChild(userMessage);
+
+            input.value = "";
+
+            // Disable button
+            sendBtn.disabled = true;
+            sendBtn.innerText = "Translating...";
+            status.innerText = "AI is translating...";
+
+            // Scroll to bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+
+                const response = await fetch("/translate", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        text: text
+                    })
+
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Translation failed");
+                }
+
+                // Show translated message
+                const botMessage = document.createElement("div");
+
+                botMessage.className = "message bot";
+
+                botMessage.innerHTML = `
+                    <div class="avatar">🤖</div>
+
+                    <div class="bubble tamil">
+                        ${escapeHtml(data.translation)}
+                    </div>
+                `;
+
+                chatBox.appendChild(botMessage);
+
+                status.innerText = "";
+
+            } catch (error) {
+
+                const errorMessage = document.createElement("div");
+
+                errorMessage.className = "message bot";
+
+                errorMessage.innerHTML = `
+                    <div class="avatar">⚠️</div>
+
+                    <div class="bubble error">
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+
+                chatBox.appendChild(errorMessage);
+
+                status.innerText = "";
+
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.innerText = "Send ➤";
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+
+        // Press Enter to send
+        document.getElementById("userInput").addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter" && !event.shiftKey) {
+
+                    event.preventDefault();
+
+                    translateText();
+                }
+
+            }
+        );
+
+
+        // Prevent HTML injection
+        function escapeHtml(text) {
+
+            const div = document.createElement("div");
+
+            div.textContent = text;
+
+            return div.innerHTML;
+        }
+
+    </script>
+
+</body>
+
+</html>
